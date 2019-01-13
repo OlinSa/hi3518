@@ -145,6 +145,7 @@ else
 endif
 
 export CC:=$(CROSS)gcc
+export CXX := $(CROSS)g++
 export AR:=$(CROSS)ar
 
 
