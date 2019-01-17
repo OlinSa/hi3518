@@ -1,4 +1,3 @@
-#include "live_H264VideoSource.hh"
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -7,6 +6,8 @@
 #include <unistd.h>
 #include <limits.h>
 #include <stdio.h>
+#include "ring_buffer.hh"
+#include "live_H264VideoSource.hh"
 
 #define MKFIFO_PATH "/tmp/H264_fifo"
 #define REV_BUF_SIZE (100 * 1024LL)
@@ -18,16 +19,6 @@ using namespace std;
 LIVE_H264VideoSource::LIVE_H264VideoSource(UsageEnvironment &env, std::string filename)
 	: FramedSource(env), m_pToken(NULL)
 {
-	if (access(MKFIFO_PATH, F_OK) == -1)
-	{
-		int res = mkfifo(MKFIFO_PATH, 0777);
-		if (res != 0)
-		{
-			printf("[RTSPStream] Create fifo failed.\n");
-			return;
-		}
-	}
-	pipe_fd = open(MKFIFO_PATH, O_RDONLY | O_CREAT);
 }
 
 LIVE_H264VideoSource::~LIVE_H264VideoSource()
@@ -57,14 +48,21 @@ void LIVE_H264VideoSource::getNextFrame(void *ptr)
 void LIVE_H264VideoSource::GetFrameData()
 {
 	gettimeofday(&fPresentationTime, 0);
+	
+	ring_buffer_t *rbuffer = RingBuffer::GetInstance()->GetRing();
 
-	if (-1 != pipe_fd)
+	if (rbuffer)
 	{
-		fFrameSize = read(pipe_fd, fTo, fMaxSize);
+		if(rbuffer->size > fMaxSize) {
+			fFrameSize = fMaxSize;
+		}else {
+			fFrameSize = rbuffer->size;
+		}
+		memcpy(fTo, rbuffer->buffer , fFrameSize);
 	}
 	else
 	{
-		envir() << "pipe bad\n";
+		envir() << "ring empty\n";
 		fFrameSize = 0;
 	}
 

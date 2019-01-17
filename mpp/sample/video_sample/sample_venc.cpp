@@ -12,23 +12,8 @@
 #include <pthread.h>
 #include <signal.h>
 
+#include "ring_buffer.hh"
 #include "sample_comm.h"
-
-#include <iostream>
-#include "BasicUsageEnvironment.hh"
-#include "UsageEnvironment.hh"
-#include "live_H264VideoSource.hh"
-#include "live_H264VideoServerMediaSubsession.hh"
-#include "liveMedia_version.hh"
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-extern HI_S32 PostH264Stream(HI_S32 s32Cnt);
-
-#define MKFIFO_PATH "/tmp/H264_fifo"
-#define MEDIA_SERVER_VERSION_STRING "0.91"
 
 VIDEO_NORM_E gs_enNorm = VIDEO_ENCODING_MODE_NTSC;
 
@@ -107,7 +92,8 @@ HI_S32 SAMPLE_VENC_1080P_CLASSIC(HI_VOID)
     HI_U32 u32Profile = 0;
 
     VB_CONF_S stVbConf;
-    SAMPLE_VI_CONFIG_S stViConfig = {0};
+    SAMPLE_VI_CONFIG_S stViConfig;
+    memset(&stViConfig, 0, sizeof(stViConfig));
 
     VPSS_GRP VpssGrp;
     VPSS_CHN VpssChn;
@@ -397,7 +383,7 @@ HI_S32 SAMPLE_VENC_1080P_CLASSIC(HI_VOID)
     /******************************************
      step 6: stream venc process -- get stream, then save it to file. 
     ******************************************/
-    PostH264Stream(s32ChnNum);
+    // PostH264Stream(s32ChnNum);
     // s32Ret = SAMPLE_COMM_VENC_StartGetStream(s32ChnNum);
     // if (HI_SUCCESS != s32Ret)
     // {
@@ -478,7 +464,8 @@ HI_S32 SAMPLE_VENC_1080P_MJPEG_JPEG(HI_VOID)
     HI_U32 u32Profile = 0;
 
     VB_CONF_S stVbConf;
-    SAMPLE_VI_CONFIG_S stViConfig = {0};
+    SAMPLE_VI_CONFIG_S stViConfig;
+    memset(&stViConfig, 0, sizeof(stViConfig));
 
     VPSS_GRP VpssGrp;
     VPSS_CHN VpssChn;
@@ -714,7 +701,8 @@ HI_S32 SAMPLE_VENC_LOW_DELAY(HI_VOID)
     HI_U32 u32Profile = 0;
 
     VB_CONF_S stVbConf;
-    SAMPLE_VI_CONFIG_S stViConfig = {0};
+    SAMPLE_VI_CONFIG_S stViConfig;
+    memset(&stViConfig, 0, sizeof(stViConfig));
     HI_U32 u32Priority;
 
     VPSS_GRP VpssGrp;
@@ -1037,7 +1025,8 @@ HI_S32 SAMPLE_VENC_ROIBG_CLASSIC(HI_VOID)
     HI_U32 u32Profile = 0;
 
     VB_CONF_S stVbConf;
-    SAMPLE_VI_CONFIG_S stViConfig = {0};
+    SAMPLE_VI_CONFIG_S stViConfig;
+    memset(&stViConfig, 0 ,sizeof(stViConfig));
 
     VPSS_GRP VpssGrp;
     VPSS_CHN VpssChn;
@@ -1297,7 +1286,8 @@ HI_S32 SAMPLE_VENC_SVC_H264(HI_VOID)
     HI_U32 u32Profile = 3; /* Svc-t */
 
     VB_CONF_S stVbConf;
-    SAMPLE_VI_CONFIG_S stViConfig = {0};
+    SAMPLE_VI_CONFIG_S stViConfig;
+    memset(&stViConfig, 0, sizeof(stViConfig));
 
     VPSS_GRP VpssGrp;
     VPSS_CHN VpssChn;
@@ -1531,19 +1521,16 @@ END_VENC_1080P_CLASSIC_0: //system exit
  *  Function: Get H264 and post it by pipe
  *******************************/
 
-void *PostH264ByFIFO(void *chnTotal)
+void *PostH264ToRing(void *chnTotal)
 {
+    ring_buffer_t ringbuffer;
     HI_S32 i = 0;
-    HI_S32 s32Cnt = 0;
     HI_S32 s32ChnTotal;
     VENC_CHN_ATTR_S stVencChnAttr;
-    SAMPLE_VENC_GETSTREAM_PARA_S *pstPara;
     HI_S32 maxfd = 0;
     struct timeval TimeoutVal;
     fd_set read_fds;
     HI_S32 VencFd[VENC_MAX_CHN_NUM];
-    HI_CHAR aszFileName[VENC_MAX_CHN_NUM][64];
-    FILE *pFile[VENC_MAX_CHN_NUM];
     char szFilePostfix[10];
     VENC_CHN_STAT_S stStat;
     VENC_STREAM_S stStream;
@@ -1553,15 +1540,6 @@ void *PostH264ByFIFO(void *chnTotal)
 
     s32ChnTotal = *((HI_S32 *)chnTotal);
 
-    /***************************
-     * Init FIFO    
-    ****************************/
-    int pipe_fd = open(MKFIFO_PATH, O_WRONLY | O_CREAT, 0644);
-    if (-1 == pipe_fd)
-    {
-        SAMPLE_PRT("open %s failed\n", MKFIFO_PATH);
-        return NULL;
-    }
     /******************************************
      step 1:  check & prepare save-file & venc-fd
     ******************************************/
@@ -1675,15 +1653,14 @@ void *PostH264ByFIFO(void *chnTotal)
                         break;
                     }
                     /*******************************************************
-                     step 2.5 : PostH264
-                    *******************************************************/
-                    for (i = 0; i < stStream.u32PackCount; i++)
-                    {
-                        SAMPLE_PRT("3\n");
-                        SAMPLE_PRT("packindex:%d. len:%ld\n", i, stStream.pstPack[i].u32Len - stStream.pstPack[i].u32Offset);
-                        write(pipe_fd, stStream.pstPack[i].pu8Addr + stStream.pstPack[i].u32Offset, stStream.pstPack[i].u32Len - stStream.pstPack[i].u32Offset);
-                    }
-
+                     step 2.5 : PostH264ToRingBuffer
+                    // *******************************************************/
+					for (unsigned i = 0; i < stStream.u32PackCount; i++)
+					{
+                        ringbuffer.buffer = stStream.pstPack[i].pu8Addr + stStream.pstPack[i].u32Offset;
+                        ringbuffer.size = stStream.pstPack[i].u32Len - stStream.pstPack[i].u32Offset;
+						RingBuffer::GetInstance()->PutRing(&ringbuffer);
+					}
                     /*******************************************************
                      step 2.6 : release stream
                     *******************************************************/
@@ -1703,7 +1680,7 @@ void *PostH264ByFIFO(void *chnTotal)
             }
         }
     }
-    close(pipe_fd);
+    // close(pipe_fd);
 
     return NULL;
 }
@@ -1713,7 +1690,7 @@ HI_S32 PostH264Stream(HI_S32 s32Cnt)
 {
     pthread_t thread_id;
     g_chnTotal = s32Cnt;
-    return pthread_create(&thread_id, 0, PostH264ByFIFO, &g_chnTotal);
+    return pthread_create(&thread_id, 0, PostH264ToRing, &g_chnTotal);
 }
 
 /******************************************************************************
@@ -1726,7 +1703,8 @@ HI_S32 SAMPLE_VENC_1080P_JPEG_Thumb(HI_VOID)
     ISP_DCF_INFO_S stIspDCF;
 
     VB_CONF_S stVbConf;
-    SAMPLE_VI_CONFIG_S stViConfig = {0};
+    SAMPLE_VI_CONFIG_S stViConfig;
+    memset(&stViConfig, 0, sizeof(stViConfig));
 
     VPSS_GRP VpssGrp;
     VPSS_CHN VpssChn;
@@ -1941,95 +1919,12 @@ END_VENC_MJPEG_JPEG_0: //system exit
     return s32Ret;
 }
 
-void *rtsp_thread(void *arg)
-{
-    TaskScheduler *scheduler = BasicTaskScheduler::createNew();
-    UsageEnvironment *env = BasicUsageEnvironment::createNew(*scheduler);
-
-    UserAuthenticationDatabase *authDB = NULL;
-#ifdef ACCESS_CONTROL
-    // To implement client access control to the RTSP server, do the following:
-    authDB = new UserAuthenticationDatabase;
-    authDB->addUserRecord("username1", "password1"); // replace these with real strings
-    // Repeat the above with each <username>, <password> that you wish to allow
-    // access to the server.
-#endif
-
-    RTSPServer *rtspServer;
-    portNumBits rtspServerPortNum = 554;
-    rtspServer = RTSPServer::createNew(*env, rtspServerPortNum, authDB);
-    if (rtspServer == NULL)
-    {
-        rtspServerPortNum = 8554;
-        rtspServer = RTSPServer::createNew(*env, rtspServerPortNum, authDB);
-    }
-    if (rtspServer == NULL)
-    {
-        *env << "Failed to create RTSP server:" << env->getResultMsg() << "\n";
-        exit(1);
-    }
-
-    LIVE_H264VideoSource *videoSource = NULL;
-
-    ServerMediaSession *sms = ServerMediaSession::createNew(*env, "live", 0, "live test");
-    sms->addSubsession(LIVE_H264VideoServerMediaSubsession::createNew(*env, videoSource, "test.264"));
-    rtspServer->addServerMediaSession(sms);
-
-    char *url = rtspServer->rtspURL(sms);
-    *env << "using url \"" << url << "\"\n";
-    delete[] url;
-
-    *env << "LIVE555 Media Server\n";
-    *env << "\tversion " << MEDIA_SERVER_VERSION_STRING
-         << " (LIVE555 Streaming Media library version "
-         << LIVEMEDIA_LIBRARY_VERSION_STRING << ").\n";
-
-    char *urlPrefix = rtspServer->rtspURLPrefix();
-    *env << "Play streams from this server using the URL\n\t"
-         << urlPrefix << "<filename>\nwhere <filename> is a file present in the current directory.\n";
-    *env << "Each file's type is inferred from its name suffix:\n";
-    *env << "\t\".264\" => a H.264 Video Elementary Stream file\n";
-    *env << "\t\".265\" => a H.265 Video Elementary Stream file\n";
-    *env << "\t\".aac\" => an AAC Audio (ADTS format) file\n";
-    *env << "\t\".ac3\" => an AC-3 Audio file\n";
-    *env << "\t\".amr\" => an AMR Audio file\n";
-    *env << "\t\".dv\" => a DV Video file\n";
-    *env << "\t\".m4e\" => a MPEG-4 Video Elementary Stream file\n";
-    *env << "\t\".mkv\" => a Matroska audio+video+(optional)subtitles file\n";
-    *env << "\t\".mp3\" => a MPEG-1 or 2 Audio file\n";
-    *env << "\t\".mpg\" => a MPEG-1 or 2 Program Stream (audio+video) file\n";
-    *env << "\t\".ogg\" or \".ogv\" or \".opus\" => an Ogg audio and/or video file\n";
-    *env << "\t\".ts\" => a MPEG Transport Stream file\n";
-    *env << "\t\t(a \".tsx\" index file - if present - provides server 'trick play' support)\n";
-    *env << "\t\".vob\" => a VOB (MPEG-2 video with AC-3 audio) file\n";
-    *env << "\t\".wav\" => a WAV Audio file\n";
-    *env << "\t\".webm\" => a WebM audio(Vorbis)+video(VP8) file\n";
-    *env << "See http://www.live555.com/mediaServer/ for additional documentation.\n";
-
-    // Also, attempt to create a HTTP server for RTSP-over-HTTP tunneling.
-    // Try first with the default HTTP port (80), and then with the alternative HTTP
-    // port numbers (8000 and 8080).
-
-    if (rtspServer->setUpTunnelingOverHTTP(80) || rtspServer->setUpTunnelingOverHTTP(8000) || rtspServer->setUpTunnelingOverHTTP(8080))
-    {
-        *env << "(We use port " << rtspServer->httpServerPortNum() << " for optional RTSP-over-HTTP tunneling, or for HTTP live streaming (for indexed Transport Stream files only).)\n";
-    }
-    else
-    {
-        *env << "(RTSP-over-HTTP tunneling is not available.)\n";
-    }
-    env->taskScheduler().doEventLoop(); // does not return
-
-    return NULL;
-}
-
 /******************************************************************************
 * function    : main()
 * Description : video venc sample
 ******************************************************************************/
 int main(int argc, char *argv[])
 {
-    pthread_t threadid;
     HI_S32 s32Ret;
 
     if ((argc < 2) || (1 != strlen(argv[1])))
@@ -2040,8 +1935,6 @@ int main(int argc, char *argv[])
 
     signal(SIGINT, SAMPLE_VENC_HandleSig);
     signal(SIGTERM, SAMPLE_VENC_HandleSig);
-
-    pthread_create(&threadid, NULL, rtsp_thread, NULL);
 
     switch (*argv[1])
     {

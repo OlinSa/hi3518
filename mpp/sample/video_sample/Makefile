@@ -38,7 +38,7 @@ all: $(TARGET)
 $(TARGET):$(OBJ) $(COMM_OBJ)
 	$(CXX) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(SENSOR_LIBS) $(CXXLIBS)
 %.o:%.cpp
-	$(CXX) $(CFLAGS)  -c -o $@ $^ -std=c++11 -fpermissive
+	$(CXX) $(CFLAGS)  -c -o $@ $^ -std=c++11
 
 clean:
 	@rm -f $(TARGET)
