@@ -18,11 +18,7 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 
 ADD_DEFINITIONS("-Wall -g -std=c++11")
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Bin)
-
-
 set(live555_PROVIDER "module" CACHE STRING "Provider of live555 library")
 
 # add_subdirectory(package)
+add_subdirectory(src)

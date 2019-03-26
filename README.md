@@ -11,6 +11,11 @@
 3. Qt+FFmpeg, 播放流数据
 4. CMake集成编译三方库
 
+
+# 说明
+
+目前暂不对工程依赖项进行自包含编译， 所有使用的三方库都由个人开发机器环境提供， 后期考虑使用cmake+FindPackage进行管理
+
 ---
 
 - Name:Jian.Cui(Olin)
