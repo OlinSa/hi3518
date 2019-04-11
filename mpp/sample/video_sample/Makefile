@@ -8,7 +8,7 @@ include ../Makefile.param
 
 # target source
 
-LIVE555_PATH := /home/cuijian/do/git/hi3518/live
+LIVE555_PATH := /home/cuijian/do/git/hi3518/package/live
 
 SRC  := $(wildcard *.cpp) 
 OBJ  := $(SRC:%.cpp=%.o)

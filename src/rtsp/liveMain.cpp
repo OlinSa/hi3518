@@ -45,7 +45,7 @@ ssize_t GetDataFun(const void *&buf, ssize_t max ,void *arg)
 
     buf = bufferInfo->buffer + bufferInfo->offset;
     bufferInfo->offset += len;
-    return bufferInfo->size;
+    return len;
 }
 
 
