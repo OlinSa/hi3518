@@ -146,77 +146,77 @@ int H264Wrap::GetNaluFromBuffer(NaluUnit &nalu, unsigned char *buf, int bufSize)
 
 void H264Wrap::PrintH264Info(std::string filename)
 {
-	unsigned char buf[10240];
-	int pos = 0;
-	int alreadSeen = 0;
-	int bufSize = sizeof(buf);
+	// unsigned char buf[10240];
+	// int pos = 0;
+	// int alreadSeen = 0;
+	// int bufSize = sizeof(buf);
 
-	int nextFramePos;
-	std::streamsize readCount;
-	int naluCount = 0;
+	// int nextFramePos;
+	// std::streamsize readCount;
+	// int naluCount = 0;
 
-	NaluUnit nalu;
+	// NaluUnit nalu;
 
-	ifstream inFile(filename, ios::in | ios::binary);
-	if (!inFile)
-	{
-		LOG_DEBUG("open %s failed", filename);
-		return;
-	}
-	while (inFile.read(reinterpret_cast<char *>(&buf[0]) + alreadSeen, bufSize - alreadSeen))
-	{
-		readCount = inFile.gcount();
-		alreadSeen += readCount;
+	// ifstream inFile(filename, ios::in | ios::binary);
+	// if (!inFile)
+	// {
+	// 	// LOG_DEBUG("open %s failed", filename);
+	// 	return;
+	// }
+	// while (inFile.read(reinterpret_cast<char *>(&buf[0]) + alreadSeen, bufSize - alreadSeen))
+	// {
+	// 	readCount = inFile.gcount();
+	// 	alreadSeen += readCount;
 
-		while ((nextFramePos = GetNaluFromBuffer(nalu, buf + pos, alreadSeen - pos)) > 0)
-		{
-			naluCount++;
-			PrintNalu(nalu);
-			// LOG_DEBUG("%d nalu: startcode:%d,type:%d, data:%p, dataSize:%d,nextFramePos:%d",
-			//   naluCount, nalu.startCode, nalu.type, nalu.data, nalu.size, nextFramePos);
-			pos += nextFramePos;
+	// 	while ((nextFramePos = GetNaluFromBuffer(nalu, buf + pos, alreadSeen - pos)) > 0)
+	// 	{
+	// 		naluCount++;
+	// 		PrintNalu(nalu);
+	// 		// LOG_DEBUG("%d nalu: startcode:%d,type:%d, data:%p, dataSize:%d,nextFramePos:%d",
+	// 		//   naluCount, nalu.startCode, nalu.type, nalu.data, nalu.size, nextFramePos);
+	// 		pos += nextFramePos;
 
-			if (nalu.type == NALU_TYPE_SPS)
-			{
-				NaluParam naluParam;
-				if (!DecodeNaluParams(naluParam, nalu.data, nalu.size))
-				{
-					LOG_ERR("decode NaluParams failed");
-				}
-				else
-				{
-					LOG_INFO("width:%u, height:%u, fps:%u",
-							 (naluParam.rbsp.pic_width_in_mbs_minus1 + 1) * 16, (naluParam.rbsp.pic_height_in_map_units_minus1 + 1) * 16, naluParam.rbsp.uvi_parameters.time_scale / (2 * naluParam.rbsp.uvi_parameters.num_units_in_tick));
-					FreeNaluParams(naluParam);
-				}
-			}
-			//                pos          alreadSeen      bufSize
-			// |  #############| ############| #############|
+	// 		if (nalu.type == NALU_TYPE_SPS)
+	// 		{
+	// 			NaluParam naluParam;
+	// 			if (!DecodeNaluParams(naluParam, nalu.data, nalu.size))
+	// 			{
+	// 				LOG_ERR("decode NaluParams failed");
+	// 			}
+	// 			else
+	// 			{
+	// 				LOG_INFO("width:%u, height:%u, fps:%u",
+	// 						 (naluParam.rbsp.pic_width_in_mbs_minus1 + 1) * 16, (naluParam.rbsp.pic_height_in_map_units_minus1 + 1) * 16, naluParam.rbsp.uvi_parameters.time_scale / (2 * naluParam.rbsp.uvi_parameters.num_units_in_tick));
+	// 				FreeNaluParams(naluParam);
+	// 			}
+	// 		}
+	// 		//                pos          alreadSeen      bufSize
+	// 		// |  #############| ############| #############|
 
-			// for (int i = 0; i < 38; i++)
-			// {
-			//     if (i % 8 == 0)
-			//     {
-			//         cout << endl;
-			//     }
-			//     cout << "0x" << setfill('0') << setw(2) << hex << (buf[i] & 0xff) << " ";
-			// }
-			// cout << endl;
-			// sleep(1);
-		}
-		if (pos > 0)
-		{
-			memmove(buf, buf + pos, alreadSeen - pos); //memcpy会有内存重叠问题
-			alreadSeen -= pos;
-			pos = 0;
-		}
-		else
-		{
-			pos = 0;
-			alreadSeen = 0;
-		}
-	}
-	inFile.close();
+	// 		// for (int i = 0; i < 38; i++)
+	// 		// {
+	// 		//     if (i % 8 == 0)
+	// 		//     {
+	// 		//         cout << endl;
+	// 		//     }
+	// 		//     cout << "0x" << setfill('0') << setw(2) << hex << (buf[i] & 0xff) << " ";
+	// 		// }
+	// 		// cout << endl;
+	// 		// sleep(1);
+	// 	}
+	// 	if (pos > 0)
+	// 	{
+	// 		memmove(buf, buf + pos, alreadSeen - pos); //memcpy会有内存重叠问题
+	// 		alreadSeen -= pos;
+	// 		pos = 0;
+	// 	}
+	// 	else
+	// 	{
+	// 		pos = 0;
+	// 		alreadSeen = 0;
+	// 	}
+	// }
+	// inFile.close();
 	return;
 }
 
@@ -309,7 +309,7 @@ void H264Wrap::PrintNalu(const NaluUnit &nalu)
 		outputString += "FILL";
 		break;
 	default:
-		outputString += "unkown" + to_string(naluheader.type);
+		// outputString += "unkown" + to_string(naluheader.type);
 		break;
 	}
 	LOG_DEBUG(outputString.c_str());

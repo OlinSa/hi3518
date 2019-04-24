@@ -272,7 +272,8 @@ bool RtmpServer::SendH264Packet(unsigned char *data, int size, bool isKeyFrame, 
 
 int RtmpServer::SendPacket(unsigned int packetType, unsigned char *data, unsigned int size, unsigned int timestamp)
 {
-    RTMPPacket *packet = (RTMPPacket *)malloc(RTMP_HEAD_SIZE + size);
+    RTMPPacket *packet = reinterpret_cast<RTMPPacket*>(new char[RTMP_HEAD_SIZE + size]);
+    // RTMPPacket *packet = (RTMPPacket *)malloc(RTMP_HEAD_SIZE + size);
     if (!packet)
     {
         LOG_ERR("malloc RTMPPacket failed:%d", RTMP_HEAD_SIZE + size);
@@ -301,7 +302,7 @@ int RtmpServer::SendPacket(unsigned int packetType, unsigned char *data, unsigne
         nRet = RTMP_SendPacket(r, packet, TRUE); /*TRUE为放进发送队列,FALSE是不放进发送队列,直接发送*/
     }
     /*释放内存*/
-    free(packet);
+    delete[] packet;
     return nRet;
 }
 
