@@ -25,13 +25,13 @@ INC  := -I../common	\
 # objects := $(patsubst %.c,%.o,$(wildcard *.c))
 
 CFLAGS += $(INC)
-CXXLIBS = -L$(LIVE555_PATH)/BasicUsageEnvironment\
+CXXLIBS += -L$(LIVE555_PATH)/BasicUsageEnvironment\
 		-L$(LIVE555_PATH)/groupsock \
 		-L$(LIVE555_PATH)/liveMedia \
 		-L$(LIVE555_PATH)/mediaServer \
 		-L$(LIVE555_PATH)/UsageEnvironment \
 		-lliveMedia -lBasicUsageEnvironment -lgroupsock  -lUsageEnvironment  \
-		-L. -lmedia -L$(RTMPDUMP_PATH)/librtmp -lrtmp
+		-L. -lmedia -L$(RTMPDUMP_PATH)/librtmp -lrtmp -lz 
 
 TARGET := video_sample
 # TARGET := $(OBJ:%.o=%)
