@@ -16,6 +16,26 @@
 
 目前暂不对工程依赖项进行自包含编译， 所有使用的三方库都由个人开发机器环境提供， 后期考虑使用cmake+FindPackage进行管理
 
+
+# 框图
+
+![](pic/architecture_diagram.JPG)
+
+# 目录结构
+
+```
+|--- cmake: cmake文件存放目录
+|--- mpp: hisi3518 相关文件目录
+|--- package: third-package
+|--- pic: picture存放目录
+|--- src: 源码文件
+	|--- common
+	|--- shard-memory
+	|--- rtsp
+	|--- rtmp
+|--- test: 测试文件
+```
+
 ---
 
 - Name:Jian.Cui(Olin)
