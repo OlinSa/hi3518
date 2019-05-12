@@ -23,6 +23,19 @@ bool RtmpServer::Init(std::string url, unsigned int cacheSize)
         return false;
     }
     RTMP_Init(r);
+    if (!RTMP_SetupURL(r, (char *)(url.c_str())))
+    {
+        RTMP_Log(RTMP_LOGERROR, "SetupURL(%s) failed", url.c_str());
+        return false;
+    }
+    RTMP_EnableWrite(r);
+
+    if (!RTMP_Connect(r, NULL))
+    {
+        LOG_ERR("connect failed");
+        return false;
+    }
+
     if (!RTMP_ConnectStream(r, 0))
     {
         LOG_ERR("connect stream failed");
@@ -54,7 +67,6 @@ bool RtmpServer::Init(std::string url, unsigned int cacheSize)
 }
 bool RtmpServer::PublishPacket(const NaluUnit &naluUnit)
 {
-    int ret = true;
     RTMPMetaData metricData;
     switch (naluUnit.type)
     {
